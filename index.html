@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Ale氏Homepage</title>
+
+    <!-- 98.css -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/98.css"
+    >
+
+    <!-- 自分のCSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <video
+        id="background-video"
+        autoplay
+        muted
+        loop
+        playsinline
+    >
+        <source src="video/background.mp4" type="video/mp4">
+    </video>
+    
+    <!-- ヘッダー -->
+    <header class="window site-header">
+        <div class="title-bar">
+            <div class="title-bar-text">
+                My Homepage
+            </div>
+
+            <div class="title-bar-controls">
+                <button aria-label="Minimize"></button>
+                <button aria-label="Maximize"></button>
+            </div>
+        </div>
+
+        <div class="window-body">
+            <h1>Welcome!</h1>
+            <p>
+                Welcome to my pages.
+            </p>
+        </div>
+    </header>
+
+
+    <!-- ナビゲーション -->
+    <nav class="window nav-window">
+        <div class="title-bar">
+            <div class="title-bar-text">
+                info
+            </div>
+        </div>
+
+        <div class="window-body nav-buttons">
+            <a href="#home">
+                <button>Home</button>
+            </a>
+
+            <a href="#about">
+                <button>info1</button>
+            </a>
+
+            <a href="#projects">
+                <button>info2</button>
+            </a>
+
+            <a href="#music">
+                <button>links</button>
+            </a>
+        </div>
+    </nav>
+
+
+    <!-- メインコンテンツ -->
+    <main>
+
+        <!-- Home -->
+        <section id="home" class="window content fade-in">
+
+            <div class="title-bar">
+                <div class="title-bar-text">
+                    Home
+                </div>
+            </div>
+
+            <div class="window-body">
+
+                <h2>Hello</h2>
+
+                <p>
+                    welcom
+                </p>
+
+                <p>
+                    Game dev(自称) / Music / 3D / Programming
+                </p>
+
+                <button id="helloButton">
+                    button
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- About -->
+        <section id="about" class="window content scroll-reveal">
+
+            <div class="title-bar">
+                <div class="title-bar-text">
+                    About
+                </div>
+            </div>
+
+            <div class="window-body">
+
+                <h2>Info</h2>
+
+                <p>
+                    今は主に音楽など、個人的にゲーム制作やいろいろ行っています
+                </p>
+
+                <fieldset>
+                    <legend>↓↓↓↓</legend>
+
+                    <ul>
+                        <li>name =: "Ale氏";</li>
+                        <li>年齢 =: 15;</li>
+                        <li>ゲームは好きです</li>
+                        <li>ゲームでいうと最近はいわゆるエロゲなどをやっています(二次元が好きです)</li>
+                        <li>あとcounter strikeや音ゲーも好きです</li>
+                        <li>アニメもちょこちょこみます</li>
+                        <li>音楽はtech coreやhitech他にはdariacore/hyperflipなどhardcoreももちろん好きです</li>
+                        <li>blenderなどもやってます</li>
+                        <li>他の趣味(?)でいうとたまに絵を描きます(ヘタクソ)</li>
+                        <li>discordのフレンド少ないです; ;</li>
+                        <li>自分にそこまで自信はありません</li>
+                    </ul>
+                </fieldset>
+
+            </div>
+
+        </section>
+
+
+        <!-- Projects -->
+        <section id="projects" class="window content scroll-reveal">
+
+            <div class="title-bar">
+                <div class="title-bar-text">
+                    info2
+                </div>
+            </div>
+
+                    <ul>
+                        <li>来年から高校生きち; ;</li>
+                        <li>お菓子はマカロンが好きです</li>
+                        <li>二次元の白髪美少女が好きです</li>
+                    </ul>
+
+        </section>
+
+
+        <!-- Music -->
+        <section id="music" class="window content scroll-reveal">
+
+            <div class="title-bar">
+                <div class="title-bar-text">
+                    links
+                </div>
+            </div>
+
+            <div class="window-body">
+
+                <h2>links</h2>
+
+                <p>
+                    link
+                </p>
+
+                <button id="soundcloud-button">
+                    soundcloud
+                </button>
+
+                <button id="youtube-button">
+                    YouTube
+                </button>
+
+                <button id="twitter-button">
+                    twitter
+                </button>
+
+                <button id="bilbili-button">
+                    B站
+                </button>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- フッター -->
+    <footer class="window footer">
+
+        <div class="window-body">
+
+            <p>
+                © 2026 Ale_shi Homepage
+            </p>
+
+            <div class="status-bar">
+
+                <p class="status-bar-field">
+                    ちゃろ~(∠・ω< )⌒☆
+                </p>
+
+            </div>
+
+        </div>
+
+    </footer>
+
+<div class="letterbox"></div>
+<div class="chromatic-overlay">
+    <div class="chromatic-red"></div>
+    <div class="chromatic-blue"></div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
