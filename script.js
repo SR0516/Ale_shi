@@ -11,7 +11,7 @@ helloButton.addEventListener("click", () => {
 const soundcloud = document.getElementById("soundcloud-button");
 
 soundcloud.addEventListener("click", () => {
-    window.open('https://soundcloud.com/ale_shi?utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing', '_blank', 'noopener,noreferrer');
+    window.open('https://soundcloud.com/ale_shi', '_blank', 'noopener,noreferrer');
 });
 
 const youtubeButton = document.getElementById("youtube-button");
