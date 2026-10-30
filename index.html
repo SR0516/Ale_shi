@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - Official Web</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="index.html" class="site-logo">
+                <i class="fa-solid fa-layer-group"></i> Ale
+            </a>
+            
+            <div class="header-right">
+                <nav class="header-nav" id="headerNav"></nav>
+                <nav class="social-links" id="socialNav"></nav>
+                <div class="theme-select-wrapper">
+                    <select id="themeSelect">
+                        <option value="dark">🌙 Dark</option>
+                        <option value="light">☀️ Light</option>
+                        <option value="pastel-mint">🌿 Pastel Mint</option>
+                        <option value="pastel-lavender">🔮 Pastel Lavender</option>
+                        <option value="pastel-peach">🍑 Pastel Peach</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero-section">
+        <div class="hero-content">
+            <img id="heroAvatar" class="hero-avatar" src="" alt="Avatar">
+            <h1 id="heroName" class="hero-title">Loading...</h1>
+            <p id="heroTitle" class="hero-subtitle"></p>
+            <p id="heroBio" class="hero-description"></p>
+        </div>
+    </section>
+
+    <main class="main-container">
+        <section class="main-content">
+            <div class="content-card card">
+                <div class="card-header-badge">OFFICIAL INFO</div>
+                <div id="markdownContent" class="markdown-body">
+                    <p>Loading...</p>
+                </div>
+            </div>
+        </section>
+
+        <aside class="sidebar-timeline">
+            <div class="timeline-container card">
+                <div class="timeline-header">
+                    <h2><i class="fa-solid fa-bullhorn"></i> Recent Posts</h2>
+                    <a href="posts.html" class="view-all-link">View All &rarr;</a>
+                </div>
+                <div id="postsFeed" class="posts-feed-list">
+                    <p class="loading-text">読み込み中...</p>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 Aleshi.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => { initHomePage(); });
+    </script>
+</body>
+</html>

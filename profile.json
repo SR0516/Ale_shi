@@ -1,0 +1,48 @@
+{
+  "name": "Ale氏",
+  "bio": "ゲーム、アニメ、音楽を作る人とまぁいろいろやってます",
+  "avatar": "posts/asset/icon_aleshi.jpg",
+  "avatar_bg": "#ffffff",
+  "hero_bg_type": "image",
+  "hero_bg_color": "linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)",
+  "hero_bg_image": "posts/asset/hedder.jpg",
+  "header_links": [
+    {
+      "name": "Home",
+      "url": "index.html",
+      "icon": "fa-solid fa-house"
+    },
+    {
+      "name": "Posts",
+      "url": "posts.html",
+      "icon": "fa-solid fa-feather-pointed"
+    }
+  ],
+  "socials": [
+    {
+      "name": "YouTube",
+      "url": "https://www.youtube.com/@ale_shi",
+      "icon": "fa-brands fa-youtube"
+    },
+    {
+      "name": "Twitter / X",
+      "url": "https://x.com/Ale16a1",
+      "icon": "fa-brands fa-x-twitter"
+    },
+   {
+      "name": "soundcloud",
+      "url": "https://soundcloud.com/ale_shi",
+      "icon": "fa-brands fa-soundcloud"
+    },
+   {
+      "name": "bilibli",
+      "url": "https://space.bilibili.com/3706958922123598?spm_id_from=333.1007.0.0",
+      "icon": "fa-brands fa-bilibili"
+    } 
+  ],
+  "github": {
+    "owner": "",
+    "repo": "",
+    "branch": "main"
+  }
+}

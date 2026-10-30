@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post - Official Web</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="index.html" class="site-logo">
+                <i class="fa-solid fa-arrow-left"></i> Back to Home
+            </a>
+            <div class="header-right">
+                <nav class="header-nav" id="headerNav"></nav>
+                <div class="theme-select-wrapper">
+                    <select id="themeSelect">
+                        <option value="dark">🌙 Dark</option>
+                        <option value="light">☀️ Light</option>
+                        <option value="pastel-mint">🌿 Pastel Mint</option>
+                        <option value="pastel-lavender">🔮 Pastel Lavender</option>
+                        <option value="pastel-peach">🍑 Pastel Peach</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="post-single-container">
+        <article class="card post-detail-card">
+            <div id="postHeader" class="post-detail-header"></div>
+            <div id="postContent" class="markdown-body">
+                <p>読み込み中...</p>
+            </div>
+        </article>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 My Brand.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => { initPostPage(); });
+    </script>
+</body>
+</html>

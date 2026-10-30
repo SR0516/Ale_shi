@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Posts - Official Web</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="index.html" class="site-logo">
+                <i class="fa-solid fa-layer-group"></i> MY BRAND
+            </a>
+            
+            <div class="header-right">
+                <nav class="header-nav" id="headerNav"></nav>
+                <nav class="social-links" id="socialNav"></nav>
+                <div class="theme-select-wrapper">
+                    <select id="themeSelect">
+                        <option value="dark">🌙 Dark</option>
+                        <option value="light">☀️ Light</option>
+                        <option value="pastel-mint">🌿 Pastel Mint</option>
+                        <option value="pastel-lavender">🔮 Pastel Lavender</option>
+                        <option value="pastel-peach">🍑 Pastel Peach</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="post-single-container">
+        <div class="card">
+            <h1 style="font-size: 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-feather-pointed"></i> All Posts
+            </h1>
+            <div id="allPostsContainer" class="posts-feed-list">
+                <p class="loading-text">投稿を読み込んでいます...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 My Brand.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => { initPostsPage(); });
+    </script>
+</body>
+</html>
