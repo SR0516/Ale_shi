@@ -3,8 +3,8 @@
 まぁタイトルの通りFLP公開します
 
 - お品書き
-- Practice hyperflip
-- My last My hyperflip of junior high school!!
+Practice hyperflip  
+My last My hyperflip of junior high school!!
 
 - 個人的に最近作って良かったやつです
 - ハイフリむずいw
