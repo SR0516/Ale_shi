@@ -1,10 +1,53 @@
-// ==========================================
+// =====================================================
 // Website template script
-// - Local HTTP server: scan the posts/ directory listing
-// - GitHub Pages: scan the repository through the GitHub Contents API
-// ==========================================
+// - Local HTTP server: automatically scans the posts/ directory
+// - GitHub Pages: automatically scans the repository via GitHub Contents API
+// - Shared post URLs: ?id=... (old ?slug=... URLs are also supported)
+// - Stable post IDs: optional Markdown front matter `id:`
+// =====================================================
 
 const POSTS_DIRECTORY = "posts/";
+
+// GitHub PagesのURLからリポジトリを自動判定できない場合（カスタムドメイン等）だけ設定。
+// 通常の https://OWNER.github.io/REPO/ なら空欄のままでOK。
+const GITHUB_CONFIG = {
+    owner: "",       // GitHubユーザー名 / Organization名
+    repo: "",        // リポジトリ名
+    branch: "",      // Pagesの公開元ブランチ。空欄ならリポジトリのデフォルトブランチ
+    postsPath: ""    // 必要なら変更（例: "docs/posts"）。空欄なら posts/
+};
+
+// --- Utility ---
+function siteUrl(path) {
+    return new URL(path, document.baseURI);
+}
+
+function getFrontMatterValue(markdown, key) {
+    const match = markdown.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*(?:\r?\n|$)/);
+    if (!match) return "";
+
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const valueMatch = match[1].match(new RegExp(`^${escapedKey}\\s*:\\s*(.*?)\\s*$`, "mi"));
+    if (!valueMatch) return "";
+
+    return valueMatch[1].trim().replace(/^(?:"([\s\S]*)"|'([\s\S]*)')$/, (_, doubleQuoted, singleQuoted) =>
+        doubleQuoted ?? singleQuoted ?? ""
+    );
+}
+
+function getMarkdownTitle(markdown, fallback) {
+    return getFrontMatterValue(markdown, "title") ||
+        ((markdown.match(/^#\s+(.*)$/m) || [])[1] || fallback).trim();
+}
+
+function getMarkdownId(markdown, fallbackSlug) {
+    // `id:`を設定しておけば、Markdownファイル名を変更しても共有URLを維持できる。
+    return getFrontMatterValue(markdown, "id") || fallbackSlug;
+}
+
+function stripFrontMatter(markdown) {
+    return markdown.replace(/^---\s*\r?\n[\s\S]*?\r?\n---\s*(?:\r?\n|$)/, "");
+}
 
 // --- 1. Theme ---
 function initTheme() {
@@ -14,9 +57,12 @@ function initTheme() {
     let savedTheme = "dark";
     try {
         savedTheme = localStorage.getItem("site_theme") || "dark";
-    } catch (error) {
-        // Storage may be unavailable in restricted browser contexts.
+    } catch (_) {
+        // localStorageが使えない環境でもテーマ切り替え自体は動作させる。
     }
+
+    const availableThemes = Array.from(themeSelect.options).map((option) => option.value);
+    if (!availableThemes.includes(savedTheme)) savedTheme = "dark";
 
     document.documentElement.setAttribute("data-theme", savedTheme);
     themeSelect.value = savedTheme;
@@ -26,19 +72,15 @@ function initTheme() {
         document.documentElement.setAttribute("data-theme", theme);
         try {
             localStorage.setItem("site_theme", theme);
-        } catch (error) {
-            // The theme still works for the current page even without storage.
-        }
+        } catch (_) {}
     });
 }
 
 // --- 2. Profile & header ---
 async function loadProfile() {
     try {
-        const response = await fetch(new URL("profile.json", document.baseURI));
-        if (!response.ok) {
-            throw new Error(`profile.json: HTTP ${response.status}`);
-        }
+        const response = await fetch(siteUrl("profile.json"));
+        if (!response.ok) throw new Error(`profile.json: HTTP ${response.status}`);
 
         const profile = await response.json();
         const heroEl = document.querySelector(".hero-section");
@@ -53,9 +95,7 @@ async function loadProfile() {
 
         if (heroAvatar && profile.avatar) {
             heroAvatar.src = resolveSiteResourceUrl(profile.avatar);
-            if (profile.avatar_bg) {
-                heroAvatar.style.backgroundColor = profile.avatar_bg;
-            }
+            if (profile.avatar_bg) heroAvatar.style.backgroundColor = profile.avatar_bg;
         }
 
         if (heroEl) {
@@ -75,13 +115,11 @@ async function loadProfile() {
                 const anchor = document.createElement("a");
                 anchor.href = link.url || "#";
                 anchor.className = "header-nav-link";
-
                 if (link.icon) {
                     const icon = document.createElement("i");
                     icon.className = link.icon;
                     anchor.appendChild(icon);
                 }
-
                 anchor.appendChild(document.createTextNode(link.name || "Link"));
                 headerNav.appendChild(anchor);
             });
@@ -96,13 +134,11 @@ async function loadProfile() {
                 anchor.target = "_blank";
                 anchor.rel = "noopener noreferrer";
                 anchor.setAttribute("aria-label", social.name || "Social link");
-
                 if (social.icon) {
                     const icon = document.createElement("i");
                     icon.className = social.icon;
                     anchor.appendChild(icon);
                 }
-
                 socialNav.appendChild(anchor);
             });
         }
@@ -114,62 +150,64 @@ async function loadProfile() {
     }
 }
 
-// Resolve paths in profile.json relative to the website root.
 function resolveSiteResourceUrl(path) {
     if (!path) return path;
     return new URL(path, new URL(".", document.baseURI)).href;
 }
 
-// --- 3. Find Markdown posts ---
+// --- 3. Detect post files ---
 function getGitHubRepositoryConfig(profile) {
-    const github = profile && profile.github ? profile.github : {};
+    const profileGitHub = profile?.github || {};
+    const owner = GITHUB_CONFIG.owner || profileGitHub.owner || "";
+    const repo = GITHUB_CONFIG.repo || profileGitHub.repo || "";
 
-    // Optional explicit settings are useful with custom domains or unusual Pages URLs.
-    if (github.owner && github.repo) {
+    // 手動設定がある場合は、カスタムドメインでも利用できる。
+    if (owner && repo) {
         return {
-            owner: github.owner,
-            repo: github.repo,
-            branch: github.branch || ""
+            owner,
+            repo,
+            branch: GITHUB_CONFIG.branch || profileGitHub.branch || "",
+            postsPath: GITHUB_CONFIG.postsPath || profileGitHub.postsPath || "posts"
         };
     }
 
-    // Automatic detection for https://OWNER.github.io/ and project Pages URLs.
+    // https://OWNER.github.io/ または https://OWNER.github.io/REPO/ を判定。
     const hostMatch = window.location.hostname.match(/^([^.]+)\.github\.io$/i);
     if (!hostMatch) return null;
 
-    const owner = hostMatch[1];
+    const detectedOwner = hostMatch[1];
     const pathParts = window.location.pathname.split("/").filter(Boolean);
     const firstPart = pathParts[0] || "";
-    const isProjectPages = firstPart !== "" && !firstPart.includes(".");
-    const repo = isProjectPages ? firstPart : `${owner}.github.io`;
+    const rootPageNames = new Set(["index.html", "post.html", "posts.html", "404.html"]);
+    const isUserSiteRoot = !firstPart || rootPageNames.has(firstPart.toLowerCase());
 
     return {
-        owner,
-        repo,
-        branch: github.branch || ""
+        owner: detectedOwner,
+        repo: isUserSiteRoot ? `${detectedOwner}.github.io` : firstPart,
+        branch: GITHUB_CONFIG.branch || profileGitHub.branch || "",
+        postsPath: GITHUB_CONFIG.postsPath || profileGitHub.postsPath || "posts"
     };
 }
 
 function getSlugsFromDirectoryListing(html, listingUrl) {
-    const documentFromListing = new DOMParser().parseFromString(html, "text/html");
-    const postsDirectoryUrl = new URL(POSTS_DIRECTORY, document.baseURI);
+    const parsed = new DOMParser().parseFromString(html, "text/html");
+    const postsDirectoryUrl = siteUrl(POSTS_DIRECTORY);
     const slugs = new Set();
 
-    documentFromListing.querySelectorAll("a[href]").forEach((anchor) => {
+    parsed.querySelectorAll("a[href]").forEach((anchor) => {
         try {
             const fileUrl = new URL(anchor.getAttribute("href"), listingUrl);
             if (fileUrl.origin !== postsDirectoryUrl.origin) return;
             if (!fileUrl.pathname.startsWith(postsDirectoryUrl.pathname)) return;
 
-            const fileName = decodeURIComponent(fileUrl.pathname.split("/").pop() || "");
-            if (!fileName.endsWith(".md")) return;
+            const encodedName = fileUrl.pathname.split("/").pop() || "";
+            const fileName = decodeURIComponent(encodedName);
+            if (!fileName.toLowerCase().endsWith(".md")) return;
 
             const slug = fileName.slice(0, -3);
-            if (slug && slug !== "." && slug !== "..") {
-                slugs.add(slug);
-            }
-        } catch (error) {
-            // Ignore malformed or unrelated directory links.
+            if (slug && slug !== "." && slug !== "..") slugs.add(slug);
+        } catch (_) {
+            // 不正なリンクやMarkdown以外は無視。
         }
     });
 
@@ -177,7 +215,7 @@ function getSlugsFromDirectoryListing(html, listingUrl) {
 }
 
 async function scanLocalPosts() {
-    const directoryUrl = new URL(POSTS_DIRECTORY, document.baseURI);
+    const directoryUrl = siteUrl(POSTS_DIRECTORY);
     const response = await fetch(directoryUrl);
     if (!response.ok) return [];
 
@@ -190,71 +228,54 @@ async function scanGitHubPosts(profile) {
     if (!config) return [];
 
     const apiUrl = new URL(
-        `https://api.github.com/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/posts`
+        `https://api.github.com/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/${config.postsPath.split("/").map(encodeURIComponent).join("/")}`
     );
     apiUrl.searchParams.set("per_page", "100");
-    if (config.branch) {
-        apiUrl.searchParams.set("ref", config.branch);
-    }
+    if (config.branch) apiUrl.searchParams.set("ref", config.branch);
 
     const response = await fetch(apiUrl.href, {
         headers: { Accept: "application/vnd.github+json" }
     });
-
-    if (!response.ok) {
-        throw new Error(`GitHub API: HTTP ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`GitHub API: HTTP ${response.status}`);
 
     const entries = await response.json();
     if (!Array.isArray(entries)) return [];
 
-    // Only Markdown files directly inside posts/ are posts; asset/ is ignored.
     return entries
-        .filter((entry) => entry.type === "file" && typeof entry.name === "string" && entry.name.endsWith(".md"))
+        .filter((entry) => entry.type === "file" && typeof entry.name === "string" && entry.name.toLowerCase().endsWith(".md"))
         .map((entry) => entry.name.slice(0, -3));
 }
 
 function resolvePostResourceUrl(path) {
     if (!path) return path;
-
-    const value = path.trim();
+    const value = String(path).trim();
     if (!value) return value;
 
-    // Keep absolute URLs, protocol-relative URLs, anchors and special schemes unchanged.
-    if (/^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(value)) {
-        return value;
-    }
+    // 外部URL、ページ内アンカー、mailto:等は変更しない。
+    if (/^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(value)) return value;
 
     const siteRoot = new URL(".", document.baseURI);
     const cleanPath = value.replace(/^\.\//, "");
 
-    // Allow both `asset/image.png` (relative to posts/) and `posts/asset/image.png`.
-    if (cleanPath.startsWith("posts/")) {
-        return new URL(cleanPath, siteRoot).href;
-    }
-
+    // `posts/asset/a.png` と `asset/a.png` の両方に対応。
+    if (cleanPath.startsWith("posts/")) return new URL(cleanPath, siteRoot).href;
     return new URL(cleanPath, new URL(POSTS_DIRECTORY, siteRoot)).href;
 }
 
 async function fetchPostData(slug) {
     try {
-        const markdownUrl = new URL(
-            `${POSTS_DIRECTORY}${encodeURIComponent(slug)}.md`,
-            document.baseURI
-        );
+        const markdownUrl = siteUrl(`${POSTS_DIRECTORY}${encodeURIComponent(slug)}.md`);
         const response = await fetch(markdownUrl);
         if (!response.ok) return null;
 
         const markdown = await response.text();
-        const titleMatch = markdown.match(/^#\s+(.*)$/m);
-        const title = titleMatch ? titleMatch[1].trim() : slug;
-
         const imageMatch = markdown.match(/!\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))/);
         const imagePath = imageMatch ? (imageMatch[1] || imageMatch[2]) : null;
 
         return {
             slug,
-            title,
+            id: getMarkdownId(markdown, slug),
+            title: getMarkdownTitle(markdown, slug),
             image: imagePath ? resolvePostResourceUrl(imagePath) : null
         };
     } catch (error) {
@@ -266,14 +287,14 @@ async function fetchPostData(slug) {
 async function fetchAllPosts(profile = null) {
     let slugs = [];
 
-    // First try the local web server's directory listing (e.g. python -m http.server).
+    // ローカルHTTPサーバーではposts/のディレクトリ一覧を利用。
     try {
         slugs = await scanLocalPosts();
-    } catch (error) {
-        console.info("Local posts directory listing is unavailable; trying GitHub Pages API.");
+    } catch (_) {
+        // GitHub Pagesではディレクトリ一覧を取得できないため次へ。
     }
 
-    // GitHub Pages does not expose directory listings, so query the public repository.
+    // GitHub PagesではGitHub APIからposts/直下のMarkdownだけ取得。
     if (slugs.length === 0) {
         try {
             slugs = await scanGitHubPosts(profile);
@@ -283,11 +304,19 @@ async function fetchAllPosts(profile = null) {
     }
 
     const uniqueSlugs = Array.from(new Set(slugs));
-    const posts = await Promise.all(uniqueSlugs.map(fetchPostData));
-    return posts.filter(Boolean);
+    const posts = (await Promise.all(uniqueSlugs.map(fetchPostData))).filter(Boolean);
+
+    // 投稿IDが重複していると共有先を特定できないため、重複を警告する。
+    const seenIds = new Set();
+    for (const post of posts) {
+        if (seenIds.has(post.id)) console.warn(`Duplicate post id: ${post.id}`);
+        seenIds.add(post.id);
+    }
+
+    return posts;
 }
 
-// --- 4. Markdown rendering helpers ---
+// --- 4. Markdown rendering ---
 function renderMarkdown(markdown, container, isPost = false) {
     if (!container) return;
     if (!window.marked || typeof window.marked.parse !== "function") {
@@ -295,23 +324,20 @@ function renderMarkdown(markdown, container, isPost = false) {
         return;
     }
 
-    const html = window.marked.parse(markdown);
+    const source = isPost ? stripFrontMatter(markdown) : markdown;
+    const html = window.marked.parse(source);
     if (!isPost) {
         container.innerHTML = html;
         return;
     }
 
-    // Markdown resources are relative to the Markdown file in posts/,
-    // not relative to post.html.
+    // 投稿内の画像・リンクはMarkdownファイル(posts/)を基準に相対パスを解決。
     const parsed = new DOMParser().parseFromString(html, "text/html");
     parsed.querySelectorAll("img[src], a[href]").forEach((element) => {
         const attribute = element.tagName === "IMG" ? "src" : "href";
         const originalUrl = element.getAttribute(attribute);
-        if (originalUrl) {
-            element.setAttribute(attribute, resolvePostResourceUrl(originalUrl));
-        }
+        if (originalUrl) element.setAttribute(attribute, resolvePostResourceUrl(originalUrl));
     });
-
     container.innerHTML = parsed.body.innerHTML;
 }
 
@@ -322,13 +348,11 @@ async function initHomePage() {
 
     const markdownContainer = document.getElementById("markdownContent");
     try {
-        const response = await fetch(new URL("content.md", document.baseURI));
+        const response = await fetch(siteUrl("content.md"));
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         renderMarkdown(await response.text(), markdownContainer);
-    } catch (error) {
-        if (markdownContainer) {
-            markdownContainer.textContent = "content.md が見つかりません。";
-        }
+    } catch (_) {
+        if (markdownContainer) markdownContainer.textContent = "content.md が見つかりません。";
     }
 
     const feedEl = document.getElementById("postsFeed");
@@ -336,7 +360,6 @@ async function initHomePage() {
 
     const posts = await fetchAllPosts(profile);
     feedEl.replaceChildren();
-
     if (posts.length === 0) {
         feedEl.innerHTML = "<p class='loading-text'>投稿がありません。</p>";
         return;
@@ -355,7 +378,6 @@ async function initPostsPage() {
 
     const posts = await fetchAllPosts(profile);
     container.replaceChildren();
-
     if (posts.length === 0) {
         container.innerHTML = "<p class='loading-text'>投稿がありません。</p>";
         return;
@@ -367,19 +389,22 @@ async function initPostsPage() {
 function createPostCard(post) {
     const anchor = document.createElement("a");
     anchor.className = "reddit-post-card";
-    anchor.href = `post.html?slug=${encodeURIComponent(post.slug)}`;
+
+    // ?id=... を使う。日本語や記号もURLSearchParamsが正しくエンコードする。
+    // 古い ?slug=... URLも initPostPage() 側で引き続き読み込める。
+    const postUrl = siteUrl("post.html");
+    postUrl.searchParams.set("id", post.id || post.slug);
+    anchor.href = postUrl.href;
 
     const meta = document.createElement("div");
     meta.className = "post-meta";
     const icon = document.createElement("i");
     icon.className = "fa-solid fa-feather-pointed";
-    meta.appendChild(icon);
-    meta.appendChild(document.createTextNode(" Post"));
+    meta.append(icon, document.createTextNode(" Post"));
 
     const title = document.createElement("div");
     title.className = "post-card-title";
     title.textContent = post.title;
-
     anchor.append(meta, title);
 
     if (post.image) {
@@ -394,52 +419,117 @@ function createPostCard(post) {
     return anchor;
 }
 
-// --- 7. Single post page ---
+// --- 7. Share button (HTML編集不要) ---
+function addShareButton(headerEl) {
+    if (!headerEl || headerEl.querySelector(".post-share-button")) return;
+
+    const styleId = "post-share-button-style";
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement("style");
+        style.id = styleId;
+        style.textContent = `
+            .post-share-actions { margin-top: 1rem; display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+            .post-share-button { border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main); padding: .55rem .9rem; border-radius: 8px; cursor: pointer; font: inherit; font-size: .85rem; transition: .2s; }
+            .post-share-button:hover { border-color: var(--accent); color: var(--accent); }
+            .post-share-status { color: var(--text-sub); font-size: .8rem; }
+        `;
+        document.head.appendChild(style);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "post-share-actions";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "post-share-button";
+    button.textContent = "リンクをコピー";
+
+    const status = document.createElement("span");
+    status.className = "post-share-status";
+    status.setAttribute("aria-live", "polite");
+
+    button.addEventListener("click", async () => {
+        const shareUrl = window.location.href;
+        try {
+            if (navigator.clipboard?.writeText && window.isSecureContext) {
+                await navigator.clipboard.writeText(shareUrl);
+            } else {
+                window.prompt("このURLをコピーしてください:", shareUrl);
+                return;
+            }
+            status.textContent = "コピーしました！";
+            button.textContent = "コピー済み";
+        } catch (error) {
+            window.prompt("コピーできませんでした。URLをコピーしてください:", shareUrl);
+        }
+    });
+
+    actions.append(button, status);
+    headerEl.appendChild(actions);
+}
+
+// --- 8. Single post page ---
 async function initPostPage() {
     initTheme();
-    await loadProfile();
+    const profile = await loadProfile();
 
     const contentEl = document.getElementById("postContent");
     const headerEl = document.getElementById("postHeader");
     const params = new URLSearchParams(window.location.search);
-    const slug = params.get("slug");
 
-    if (!slug || slug.includes("/") || slug.includes("\\") || slug === "." || slug === "..") {
-        if (contentEl) {
-            contentEl.innerHTML = "<h2>エラー</h2><p>記事が指定されていません。</p>";
-        }
+    // 新URLは?id=...、従来の?slug=...も後方互換で対応。
+    const postId = params.get("id");
+    const legacySlug = params.get("slug");
+    const requestedValue = postId || legacySlug;
+
+    if (!requestedValue || requestedValue.includes("/") || requestedValue.includes("\\") || requestedValue === "." || requestedValue === "..") {
+        showPostError(contentEl, "記事が指定されていません。URLを確認してください。");
         return;
     }
 
     try {
-        const markdownUrl = new URL(
-            `${POSTS_DIRECTORY}${encodeURIComponent(slug)}.md`,
-            document.baseURI
-        );
-        const response = await fetch(markdownUrl);
-        if (!response.ok) {
-            throw new Error(`Markdown not found (HTTP ${response.status})`);
+        let slug = legacySlug || requestedValue;
+
+        // ?id=... の場合、全投稿のMarkdown front matterからIDに対応するファイル名を探す。
+        // これによりMarkdownファイル名を変更しても、idを維持すれば古い共有URLが使える。
+        if (postId) {
+            const posts = await fetchAllPosts(profile);
+            const matchedPost = posts.find((post) => post.id === postId);
+            if (matchedPost) {
+                slug = matchedPost.slug;
+            } else {
+                // front matter未設定時は、idをファイル名としても試す。
+                slug = postId;
+            }
         }
 
+        const markdownUrl = siteUrl(`${POSTS_DIRECTORY}${encodeURIComponent(slug)}.md`);
+        const response = await fetch(markdownUrl);
+        if (!response.ok) throw new Error(`記事が見つかりません (HTTP ${response.status})`);
+
         const markdown = await response.text();
-        const titleMatch = markdown.match(/^#\s+(.*)$/m);
-        const title = titleMatch ? titleMatch[1].trim() : slug;
+        const title = getMarkdownTitle(markdown, slug);
 
         if (headerEl) {
             const heading = document.createElement("h1");
             heading.textContent = title;
             headerEl.replaceChildren(heading);
+            addShareButton(headerEl);
         }
 
         document.title = `${title} - Post`;
         renderMarkdown(markdown, contentEl, true);
     } catch (error) {
-        if (contentEl) {
-            const heading = document.createElement("h2");
-            heading.textContent = "記事の読み込みに失敗しました";
-            const message = document.createElement("p");
-            message.textContent = error.message;
-            contentEl.replaceChildren(heading, message);
-        }
+        console.error("Post load error:", error);
+        showPostError(contentEl, error.message || "記事の読み込みに失敗しました。");
     }
+}
+
+function showPostError(container, message) {
+    if (!container) return;
+    const heading = document.createElement("h2");
+    heading.textContent = "記事の読み込みに失敗しました";
+    const paragraph = document.createElement("p");
+    paragraph.textContent = message;
+    container.replaceChildren(heading, paragraph);
 }
