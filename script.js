@@ -27,7 +27,7 @@ function getFrontMatterValue(markdown, key) {
     if (!match) return "";
 
     const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const valueMatch = match[1].match(new RegExp(`^${escapedKey}\\s*:\\s*(.*?)\\s*$`, "mi"));
+    const valueMatch = match[1].match(new RegExp(`^${escapedKey}\s*:\s*(.*?)\s*$`, "mi"));
     if (!valueMatch) return "";
 
     return valueMatch[1].trim().replace(/^(?:"([\s\S]*)"|'([\s\S]*)')$/, (_, doubleQuoted, singleQuoted) =>
@@ -306,6 +306,14 @@ async function fetchAllPosts(profile = null) {
     const uniqueSlugs = Array.from(new Set(slugs));
     const posts = (await Promise.all(uniqueSlugs.map(fetchPostData))).filter(Boolean);
 
+    // ファイル名順（名前順）で並べる
+    posts.sort((a, b) =>
+        a.slug.localeCompare(b.slug, "ja", {
+            numeric: true,
+            sensitivity: "base"
+        })
+    );
+
     // 投稿IDが重複していると共有先を特定できないため、重複を警告する。
     const seenIds = new Set();
     for (const post of posts) {
@@ -429,7 +437,7 @@ function addShareButton(headerEl) {
         style.id = styleId;
         style.textContent = `
             .post-share-actions { margin-top: 1rem; display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
-            .post-share-button { border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main); padding: .55rem .9rem; border-radius: 8px; cursor: pointer; font: inherit; font-size: .85rem; transition: .2s; }
+            .post-share-button { border: 1px solid var(--border); background: var(--bg-main); color: var(--text-main); padding: .55rem .9rem; border-radius: 8px; cursor: pointer; font: inherit; font-s[...]
             .post-share-button:hover { border-color: var(--accent); color: var(--accent); }
             .post-share-status { color: var(--text-sub); font-size: .8rem; }
         `;
