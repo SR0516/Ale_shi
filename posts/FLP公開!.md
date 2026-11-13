@@ -1,3 +1,8 @@
+---
+title: 俺のFLP公開しちゃうぜ!
+updated: 2026-10-31T12:00:00+09:00
+---
+
 ### 俺のFLP公開しちゃうぜ!
 どうもAle氏です!
 まぁタイトルの通りFLP公開します
@@ -12,5 +17,3 @@ My last My hyperflip of junior high school!!
 
 ## FLP
 https://drive.google.com/file/d/1xN_AWmqeQ_y0BLdR41RxP3NNot4CYOCJ/view?usp=drive_link
-
-2024/10/31
